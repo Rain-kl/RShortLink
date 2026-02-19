@@ -11,7 +11,7 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
-      password: 123456
+      password: root
   mvc:
     view:
       prefix: /templates/
@@ -32,16 +32,17 @@ short-link:
     time-window: 1
     max-access-count: 20
   domain:
-    default: nurl.ink:8003
+    default: 127.0.0.1:8003
+
   stats:
     locale:
       amap-key: 824c511f0997586ea016f979fdb23087
   goto-domain:
     white-list:
-      enable: true
-      names: '拿个offer,知乎,掘金,博客园'
+      enable: false
+      names: '示例站点,知乎,掘金,博客园'
       details:
-        - nageoffer.com
+        - example.com
         - zhihu.com
         - juejin.cn
         - cnblogs.com
@@ -50,3 +51,12 @@ mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath:mapper/*.xml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  metrics:
+    tags:
+      application: ${spring.application.name}

@@ -17,7 +17,30 @@
   -->
 
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.nageoffer.shortlink.project.dao.mapper.ShortLinkMapper">
+<mapper namespace="com.rlink.project.dao.mapper.ShortLinkMapper">
+
+    <sql id="BaseShortLinkColumns">
+        t.id,
+        t.domain,
+        t.short_uri AS shortUri,
+        t.full_short_url AS fullShortUrl,
+        t.origin_url AS originUrl,
+        t.click_num AS clickNum,
+        t.username,
+        t.enable_status AS enableStatus,
+        t.created_type AS createdType,
+        t.valid_date_type AS validDateType,
+        t.valid_date AS validDate,
+        t.`describe` AS `describe`,
+        t.favicon,
+        t.total_pv AS totalPv,
+        t.total_uv AS totalUv,
+        t.total_uip AS totalUip,
+        t.del_time AS delTime,
+        t.create_time AS createTime,
+        t.update_time AS updateTime,
+        t.del_flag AS delFlag
+    </sql>
 
     <!-- 自增短链接访问次数 -->
     <update id="incrementStats">
@@ -25,23 +48,26 @@
         SET total_pv  = total_pv + #{totalPv},
             total_uv  = total_uv + #{totalUv},
             total_uip = total_uip + #{totalUip}
-        WHERE gid = #{gid}
-          AND full_short_url = #{fullShortUrl}
+                WHERE full_short_url = #{fullShortUrl}
+                    AND del_time = 0
+                    AND del_flag = 0
     </update>
 
     <!-- 分页查询短链接 -->
-    <select id="pageLink" parameterType="com.nageoffer.shortlink.project.dto.req.ShortLinkPageReqDTO"
-            resultType="com.nageoffer.shortlink.project.dao.entity.ShortLinkDO">
-        SELECT t.*,
+    <select id="pageLink" parameterType="com.rlink.project.dto.req.ShortLinkPageReqDTO"
+            resultType="com.rlink.project.dao.entity.ShortLinkDO">
+        SELECT
+        <include refid="BaseShortLinkColumns" />,
         COALESCE(s.today_pv, 0) AS todayPv,
         COALESCE(s.today_uv, 0) AS todayUv,
         COALESCE(s.today_uip, 0) AS todayUip
         FROM t_link t
         LEFT JOIN t_link_stats_today s ON t.full_short_url = s.full_short_url
         AND s.date = CURDATE()
-        WHERE t.gid = #{gid}
+        WHERE t.username = #{username}
         AND t.enable_status = 0
         AND t.del_flag = 0
+        AND t.del_time = 0
         <choose>
             <when test="orderTag == 'todayPv'">
                 ORDER BY todayPv DESC
@@ -69,21 +95,76 @@
 
     <!-- 分页统计回收站短链接 -->
     <select id="pageRecycleBinLink"
-            parameterType="com.nageoffer.shortlink.project.dto.req.ShortLinkRecycleBinPageReqDTO"
-            resultType="com.nageoffer.shortlink.project.dao.entity.ShortLinkDO">
-        SELECT t.*,
+            parameterType="com.rlink.project.dto.req.ShortLinkRecycleBinPageReqDTO"
+            resultType="com.rlink.project.dao.entity.ShortLinkDO">
+        SELECT
+        <include refid="BaseShortLinkColumns" />,
         COALESCE(s.today_pv, 0) AS todayPv,
         COALESCE(s.today_uv, 0) AS todayUv,
         COALESCE(s.today_uip, 0) AS todayUip
         FROM t_link t
         LEFT JOIN t_link_stats_today s ON t.full_short_url = s.full_short_url
         AND s.date = CURDATE()
-        WHERE t.gid IN
-        <foreach item='item' index='index' collection='gidList' open='(' separator=',' close=')'>
-            #{item}
-        </foreach>
+        WHERE t.username = #{username}
         AND t.enable_status = 1
         AND t.del_flag = 0
+        AND t.del_time = 0
         ORDER by t.update_time
+    </select>
+
+    <select id="adminPageLink" parameterType="com.rlink.project.dto.req.AdminShortLinkPageReqDTO"
+            resultType="com.rlink.project.dao.entity.ShortLinkDO">
+        SELECT
+        <include refid="BaseShortLinkColumns" />,
+        COALESCE(s.today_pv, 0) AS todayPv,
+        COALESCE(s.today_uv, 0) AS todayUv,
+        COALESCE(s.today_uip, 0) AS todayUip
+        FROM t_link t
+        LEFT JOIN t_link_stats_today s ON t.full_short_url = s.full_short_url
+        AND s.date = CURDATE()
+        WHERE t.del_flag = 0
+        AND t.del_time = 0
+        <if test="username != null and username != ''">
+            AND t.username = #{username}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                t.full_short_url LIKE CONCAT('%', #{keyword}, '%')
+                OR t.origin_url LIKE CONCAT('%', #{keyword}, '%')
+                OR t.`describe` LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <choose>
+            <when test="sortField == 'totalUv'">
+                ORDER BY t.total_uv
+            </when>
+            <when test="sortField == 'totalUip'">
+                ORDER BY t.total_uip
+            </when>
+            <when test="sortField == 'totalPv'">
+                ORDER BY t.total_pv
+            </when>
+            <otherwise>
+                ORDER BY t.create_time
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder == 'asc'">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="adminOverview" resultType="com.rlink.project.dto.resp.AdminShortLinkOverviewRespDTO">
+        SELECT
+            COUNT(1) AS totalLinks,
+            COALESCE(SUM(total_pv), 0) AS totalClicks,
+            COALESCE(SUM(total_uv), 0) AS totalVisitors
+        FROM t_link
+        WHERE del_flag = 0
+        AND del_time = 0
     </select>
 </mapper>

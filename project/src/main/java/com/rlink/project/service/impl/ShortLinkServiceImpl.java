@@ -421,23 +421,29 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .orElse("");
         String shortLinkPath = buildShortLinkPath(shortUri);
         String fullShortUrl = serverName + serverPort + "/" + shortUri;
+        // 先从 Redis 里面拿
         String originalLink = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
+        //命中直接跳转
         if (StrUtil.isNotBlank(originalLink)) {
             shortLinkStats(buildLinkStatsRecordAndSetUser(fullShortUrl, request, response));
             ((HttpServletResponse) response).sendRedirect(originalLink);
             return;
         }
+        // 布隆过滤器检查
         boolean contains = shortUriCreateCachePenetrationBloomFilter.contains(shortLinkPath);
+        // 布隆没有就是不存在
         if (!contains) {
             ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
+        // redis 空检查
         String gotoIsNullShortLink = stringRedisTemplate.opsForValue()
                 .get(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortUrl));
         if (StrUtil.isNotBlank(gotoIsNullShortLink)) {
             ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
+        // 准备查库并恢复 redis
         RLock lock = redissonClient.getLock(String.format(LOCK_GOTO_SHORT_LINK_KEY, fullShortUrl));
         lock.lock();
         try {
@@ -453,6 +459,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 return;
             }
+            // 查库
             LambdaQueryWrapper<ShortLinkGotoDO> linkGotoQueryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
                     .eq(ShortLinkGotoDO::getFullShortUrl, shortLinkPath);
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
@@ -475,6 +482,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 return;
             }
+            // 恢复redis
             stringRedisTemplate.opsForValue().set(
                     String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
                     shortLinkDO.getOriginUrl(),

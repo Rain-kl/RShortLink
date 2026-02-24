@@ -1,0 +1,90 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rshortlink-app
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+      - nacos
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_HOST: db
+      MYSQL_PORT: "3306"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NACOS_HOST: nacos
+      NACOS_PORT: "8848"
+      DATABASE_ENV: docker
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_PASSWORD: root
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
+      SHORT_LINK_DOMAIN_DEFAULT: localhost:8080
+      AGGREGATION_REMOTE_URL: http://127.0.0.1:8003
+      GATEWAY_JAVA_OPTS: -Xms256m -Xmx256m
+      AGGREGATION_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "8080:80"
+      - "8000:8000"
+      - "8003:8003"
+
+  db:
+    image: mysql:8.4
+    container_name: rshortlink-db
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: link
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./SQL/init_link.sql:/docker-entrypoint-initdb.d/01-init_link.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: rshortlink-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "root"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "root", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: rshortlink-nacos
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 256m
+      JVM_XMX: 256m
+      JVM_XMN: 128m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+
+volumes:
+  mysql-data:
+  redis-data:

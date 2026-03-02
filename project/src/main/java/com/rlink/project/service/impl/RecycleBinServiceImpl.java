@@ -22,6 +22,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.rlink.project.common.biz.cache.ShortLinkGotoLocalCache;
 import com.rlink.project.common.biz.user.UserContext;
 import com.rlink.project.dao.entity.ShortLinkDO;
 import com.rlink.project.dao.mapper.ShortLinkMapper;
@@ -46,6 +47,7 @@ import static com.rlink.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK
 public class RecycleBinServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO> implements RecycleBinService {
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final ShortLinkGotoLocalCache shortLinkGotoLocalCache;
 
     @Override
     public void saveRecycleBin(RecycleBinSaveReqDTO requestParam) {
@@ -59,6 +61,7 @@ public class RecycleBinServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLin
                 .build();
         baseMapper.update(shortLinkDO, updateWrapper);
         stringRedisTemplate.delete(String.format(GOTO_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
+        shortLinkGotoLocalCache.invalidate(requestParam.getFullShortUrl());
     }
 
     @Override
@@ -84,6 +87,7 @@ public class RecycleBinServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLin
                 .build();
         baseMapper.update(shortLinkDO, updateWrapper);
         stringRedisTemplate.delete(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, requestParam.getFullShortUrl()));
+        shortLinkGotoLocalCache.invalidate(requestParam.getFullShortUrl());
     }
 
     @Override

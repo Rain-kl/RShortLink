@@ -32,6 +32,9 @@ short-link:
     locale:
       amap-key: 824c511f0997586ea016f979fdb23087
   goto-domain:
+    local-cache:
+      enabled: true
+      maximum-size: 10000
     white-list:
       enable: true
       names: '示例站点,知乎,掘金,博客园'

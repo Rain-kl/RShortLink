@@ -22,7 +22,7 @@ services:
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: root
       SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
-      SHORT_LINK_DOMAIN_DEFAULT: localhost:8080
+      SHORT_LINK_DOMAIN_DEFAULT: https://arctel.net
       AGGREGATION_REMOTE_URL: http://127.0.0.1:8003
       GATEWAY_JAVA_OPTS: -Xms256m -Xmx256m
       AGGREGATION_JAVA_OPTS: -Xms512m -Xmx512m
@@ -32,7 +32,7 @@ services:
       - "8003:8003"
 
   db:
-    image: mysql:8.4
+    image: mariadb:10.11
     container_name: rshortlink-db
     restart: unless-stopped
     environment:
@@ -46,6 +46,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
       - ./SQL/init_link.sql:/docker-entrypoint-initdb.d/01-init_link.sql:ro
+      - ./SQL/update_link.sql:/docker-entrypoint-initdb.d/02-update_link.sql:ro
     ports:
       - "3306:3306"
     healthcheck:
@@ -55,7 +56,7 @@ services:
       retries: 12
 
   redis:
-    image: redis:7.2-alpine
+    image: redis:7-alpine
     container_name: rshortlink-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "root"]
@@ -70,7 +71,7 @@ services:
       retries: 12
 
   nacos:
-    image: nacos/nacos-server:v2.3.2
+    image: nacos/nacos-server:v2.4.3
     container_name: rshortlink-nacos
     restart: unless-stopped
     environment:

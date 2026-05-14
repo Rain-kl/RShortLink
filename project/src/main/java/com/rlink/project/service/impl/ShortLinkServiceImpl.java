@@ -177,13 +177,21 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 requestParam.getOriginUrl(),
                 LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS);
         shortLinkGotoLocalCache.putOrigin(
-            fullShortUrl,
-            requestParam.getOriginUrl(),
-            LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()),
-            TimeUnit.MILLISECONDS);
+                fullShortUrl,
+                requestParam.getOriginUrl(),
+                LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()),
+                TimeUnit.MILLISECONDS);
         shortUriCreateCachePenetrationBloomFilter.add(shortLinkPath);
+        String shortUrl = shortLinkDO.getFullShortUrl();
+        String fullShortUrl1;
+
+        if (shortUrl.startsWith("http")) {
+            fullShortUrl1 = shortUrl;
+        } else {
+            fullShortUrl1 = "https://" + shortUrl;
+        }
         return ShortLinkCreateRespDTO.builder()
-                .fullShortUrl("http://" + shortLinkDO.getFullShortUrl())
+                .fullShortUrl(fullShortUrl1)
                 .originUrl(requestParam.getOriginUrl())
                 .build();
     }
@@ -233,7 +241,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
                     requestParam.getOriginUrl(),
                     LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS);
-                shortLinkGotoLocalCache.putOrigin(
+            shortLinkGotoLocalCache.putOrigin(
                     fullShortUrl,
                     requestParam.getOriginUrl(),
                     LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()),
@@ -534,12 +542,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 return;
             }
             // 恢复redis
-                long cacheValidTime = LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate());
+            long cacheValidTime = LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate());
             stringRedisTemplate.opsForValue().set(
                     String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
                     shortLinkDO.getOriginUrl(),
                     cacheValidTime, TimeUnit.MILLISECONDS);
-                shortLinkGotoLocalCache.putOrigin(fullShortUrl, shortLinkDO.getOriginUrl(), cacheValidTime,
+            shortLinkGotoLocalCache.putOrigin(fullShortUrl, shortLinkDO.getOriginUrl(), cacheValidTime,
                     TimeUnit.MILLISECONDS);
             shortLinkStats(buildLinkStatsRecordAndSetUser(shortLinkDO.getFullShortUrl(), request, response));
             ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
@@ -553,7 +561,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     private ShortLinkStatsRecordDTO buildLinkStatsRecordAndSetUser(String fullShortUrl, ServletRequest request,
-            ServletResponse response) {
+                                                                   ServletResponse response) {
         AtomicBoolean uvFirstFlag = new AtomicBoolean();
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
         AtomicReference<String> uv = new AtomicReference<>();

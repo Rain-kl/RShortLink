@@ -27,9 +27,9 @@ services:
       GATEWAY_JAVA_OPTS: -Xms256m -Xmx256m
       AGGREGATION_JAVA_OPTS: -Xms512m -Xmx512m
     ports:
-      - "8080:80"
-      - "8000:8000"
-      - "8003:8003"
+      - "53880:80"
+      - "8000"
+      - "53883:8003"
 
   db:
     image: mariadb:10.11
@@ -48,7 +48,7 @@ services:
       - ./SQL/init_link.sql:/docker-entrypoint-initdb.d/01-init_link.sql:ro
       - ./SQL/update_link.sql:/docker-entrypoint-initdb.d/02-update_link.sql:ro
     ports:
-      - "3306:3306"
+      - "3306"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
       interval: 10s
@@ -63,7 +63,7 @@ services:
     volumes:
       - redis-data:/data
     ports:
-      - "6379:6379"
+      - "6379"
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "root", "ping"]
       interval: 10s
@@ -83,8 +83,8 @@ services:
       JVM_XMX: 256m
       JVM_XMN: 128m
     ports:
-      - "8848:8848"
-      - "9848:9848"
+      - "8848"
+      - "9848"
 
 volumes:
   mysql-data:

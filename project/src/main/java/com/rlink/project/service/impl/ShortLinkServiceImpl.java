@@ -456,7 +456,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         // 先从 Redis 里面拿
         String originalLink = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
-        //命中直接跳转
+        // 命中直接跳转
         if (StrUtil.isNotBlank(originalLink)) {
             long redisExpireMillis = stringRedisTemplate.getExpire(
                     String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
@@ -498,7 +498,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                         String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
                         TimeUnit.MILLISECONDS);
                 if (redisExpireMillis != null && redisExpireMillis > 0) {
-                    shortLinkGotoLocalCache.putOrigin(fullShortUrl, originalLink, redisExpireMillis, TimeUnit.MILLISECONDS);
+                    shortLinkGotoLocalCache.putOrigin(fullShortUrl, originalLink, redisExpireMillis,
+                            TimeUnit.MILLISECONDS);
                 }
                 shortLinkStats(buildLinkStatsRecordAndSetUser(fullShortUrl, request, response));
                 ((HttpServletResponse) response).sendRedirect(originalLink);
@@ -561,7 +562,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     private ShortLinkStatsRecordDTO buildLinkStatsRecordAndSetUser(String fullShortUrl, ServletRequest request,
-                                                                   ServletResponse response) {
+            ServletResponse response) {
         AtomicBoolean uvFirstFlag = new AtomicBoolean();
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
         AtomicReference<String> uv = new AtomicReference<>();
